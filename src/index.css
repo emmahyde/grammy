@@ -1,0 +1,46 @@
+:root {
+  --bg: #131320;
+  --bg-raised: #1a1b2b;
+  --fg: #cdd3f5;
+  --fg-dim: #7982a9;
+  --border: #2b2d45;
+  --accent: #7aa2f7;
+  --danger: #f7768e;
+  --toolbar-bg: #1e2a2a;
+  --toolbar-border: #2f4040;
+  --node-fill: #24283b;
+  --node-stroke: #565f89;
+  --node-text: #cdd3f5;
+  --edge: #565f89;
+  --edge-selected: #7aa2f7;
+
+  font: 14px/1.45 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: dark;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  height: 100svh;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+}
