@@ -101,8 +101,6 @@ function Editor() {
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<ReadonlySet<string>>(new Set())
 
-  // Text the canvas itself emitted; its onChange echo must not re-parse.
-  const lastEmitted = useRef<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const idCounter = useRef(0)
   const rf = useReactFlow()
@@ -134,7 +132,6 @@ function Editor() {
         if (n.height != null && n.height !== 52) meta.nodes[n.id].h = Math.round(n.height)
       }
       const text = serializeFlowchart(doc, meta)
-      lastEmitted.current = text
       setState({ text, doc, parseError: null })
     },
     [autoLayout, curves],
@@ -159,8 +156,9 @@ function Editor() {
   )
 
   /** Code-pane-originated update, debounced. */
+  // uiw's CodeMirror tags prop-driven value updates with its ExternalChange annotation and
+  // never fires onChange for them, so every call here is a genuine user edit.
   const onCodeChange = useCallback((text: string) => {
-    if (text === lastEmitted.current) return
     setState((prev) => ({ ...prev, text }))
     if (debounceTimer.current != null) clearTimeout(debounceTimer.current)
     debounceTimer.current = setTimeout(() => {
