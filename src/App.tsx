@@ -39,7 +39,7 @@ import { CodePane } from './components/CodePane'
 import { Preview } from './components/Preview'
 import './App.css'
 
-const STORAGE_KEY = 'mermaidcharter:doc'
+const STORAGE_KEY = 'grammy:doc'
 
 const DEFAULT_TEXT = `flowchart TD
   A[Start] --> B{Ship it?}
@@ -611,7 +611,7 @@ function Editor() {
   return (
     <div className="app">
       <header className="header">
-        <div className="brand">mermaidcharter</div>
+        <div className="brand">Grammy</div>
         <div className="header-actions">
           <div className="view-toggle">
             <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>

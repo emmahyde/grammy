@@ -1,7 +1,7 @@
 # STATE
 
 ## Goal
-WYSIWYG mermaid diagram editor (mermaidcharter): two-way sync between mermaid code pane and a draggable/restylable React Flow canvas, full-coverage preview.
+WYSIWYG mermaid diagram editor (Grammy, formerly mermaidcharter): two-way sync between mermaid code pane and a draggable/restylable React Flow canvas, full-coverage preview.
 
 ## Now
 All verification gates passed (#12–#15 browser-verified 2026-07-07). One uncommitted change: src/App.tsx removes the lastEmitted echo-guard from onCodeChange (bug fix, see Done). Awaiting Emma's review/commit decision.
