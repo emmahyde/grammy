@@ -1,6 +1,6 @@
-import { useState, type KeyboardEvent, type RefObject } from 'react'
-import { TAGS, type Decision, type SurfaceStatus } from '../../surface/protocol'
-import { describeTarget, type Annotation, type Tag, type Target } from '../lib/annotations'
+import type { KeyboardEvent } from 'react'
+import { type Decision, type SurfaceStatus } from '../../surface/protocol'
+import { describeTarget, type Annotation, type Target } from '../lib/annotations'
 
 interface Props {
   /** A surface server answered at load time. Without one, feedback has nowhere to go. */
@@ -13,18 +13,15 @@ interface Props {
   onToggle: () => void
   status: SurfaceStatus | null
   lastSent: { seq: number; decision: Decision } | null
-  selected: Target | null
   annotations: Annotation[]
   exists: (t: Target) => boolean
   message: string
   onMessage: (text: string) => void
-  onAdd: (note: string, tag: Tag | null) => void
   onRemove: (id: string) => void
   onLocate: (t: Target) => void
   onSend: (decision: Decision) => void
   sending: boolean
   error: string | null
-  composerRef: RefObject<HTMLTextAreaElement | null>
 }
 
 const isSubmit = (e: KeyboardEvent) => e.key === 'Enter' && (e.metaKey || e.ctrlKey)
@@ -39,9 +36,6 @@ function delivery(p: Props): { tone: string; text: string } | null {
 }
 
 export function CollabPanel(p: Props) {
-  const [note, setNote] = useState('')
-  const [tag, setTag] = useState<Tag | null>(null)
-
   const listening = p.linked && p.status?.listening === true
   const canSend = p.linked && !p.sending && (p.message.trim() !== '' || p.annotations.length > 0)
   const sent = delivery(p)
@@ -69,14 +63,6 @@ export function CollabPanel(p: Props) {
         </button>
       </aside>
     )
-  }
-
-  function add() {
-    const text = note.trim()
-    if (text === '' || p.selected == null) return
-    p.onAdd(text, tag)
-    setNote('')
-    setTag(null)
   }
 
   return (
@@ -120,44 +106,10 @@ export function CollabPanel(p: Props) {
         }}
       />
 
-      <div className="collab-label">Comment on selection</div>
-      {p.selected == null ? (
-        <p className="collab-hint">Select a node or an edge on the canvas to comment on it.</p>
-      ) : (
-        <div className="composer">
-          <div className="composer-target">
-            <span className="kind">{p.selected.kind}</span> {describeTarget(p.selected)}
-          </div>
-          <div className="tags" role="group" aria-label="Comment kind">
-            {TAGS.map((t) => (
-              <button key={t} className={`tag ${tag === t ? 'on' : ''}`} aria-pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>
-                {t}
-              </button>
-            ))}
-          </div>
-          <textarea
-            ref={p.composerRef}
-            className="collab-text"
-            rows={2}
-            value={note}
-            placeholder="Say what to change here… (⌘↵ to add, C to focus)"
-            onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => {
-              if (isSubmit(e)) {
-                e.preventDefault()
-                add()
-              }
-            }}
-          />
-          <button className="collab-btn" disabled={note.trim() === ''} onClick={add}>
-            Add comment
-          </button>
-        </div>
-      )}
-
       <div className="collab-label">
         Comments <span className="count">{p.annotations.length}</span>
       </div>
+      {p.annotations.length === 0 && <p className="collab-hint">Select a node or edge on the canvas, then press C to comment on it right there.</p>}
       <ol className="notes">
         {p.annotations.map((a, i) => (
           <li key={a.id} className={p.exists(a.target) ? '' : 'gone'}>

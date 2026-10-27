@@ -37,6 +37,7 @@ import { SelectionToolbar, type Selection } from './components/SelectionToolbar'
 import { CodePane } from './components/CodePane'
 import { Preview } from './components/Preview'
 import { CollabPanel } from './components/CollabPanel'
+import { InlineNote } from './components/InlineNote'
 import { diffDocs, isEmptyDiff, type DocDiff } from './lib/diff'
 import { pinsByNode, targetExists, targetFor, toFeedback, type Annotation, type Tag, type Target } from './lib/annotations'
 import { composeDoc, loadDoc, saveDoc, sendFeedback, splitDoc, subscribe } from './lib/surfaceClient'
@@ -242,13 +243,12 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   const [agentChange, setAgentChange] = useState<{ diff: DocDiff | null; error: string | null } | null>(null)
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem(PANEL_KEY) === '1')
   const [codeOpen, setCodeOpen] = useState(() => localStorage.getItem(CODE_KEY) === '1')
-  const [focusComposer, setFocusComposer] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(false)
   const [annotations, setAnnotations] = useState<Annotation[]>(loadAnnotations)
   const [message, setMessage] = useState(() => localStorage.getItem(MESSAGE_KEY) ?? '')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [lastSent, setLastSent] = useState<{ seq: number; decision: Decision } | null>(null)
-  const composerRef = useRef<HTMLTextAreaElement | null>(null)
 
   // the last revision both sides agree on; a human edit is "dirty" while it differs from this
   const syncRef = useRef<{ rev: number; text: string; layout: string | null } | null>(
@@ -423,23 +423,24 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
     }
   }
 
-  // C: jump to the comment box for the selected item
+  // C: open the comment box next to the selected item
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey || selTarget == null) return
       const from = e.target instanceof Element ? e.target : null
       if (from?.closest('input, textarea, select, [contenteditable="true"], .cm-editor') != null) return
       e.preventDefault()
-      // the composer is not mounted while the panel is a rail: open it, focus once it exists
-      if (panelOpen) composerRef.current?.focus()
-      else {
-        setPanelOpen(true)
-        setFocusComposer(true)
-      }
+      setNoteOpen(true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [panelOpen, selTarget])
+  }, [selTarget])
+
+  // the box belongs to one item: selecting something else closes it
+  const selKey = selTarget == null ? '' : selTarget.kind === 'node' ? `n:${selTarget.id}` : `e:${selTarget.source}>${selTarget.target}`
+  useEffect(() => {
+    setNoteOpen(false)
+  }, [selKey])
 
   useEffect(() => {
     localStorage.setItem(PANEL_KEY, panelOpen ? '1' : '0')
@@ -448,12 +449,6 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   useEffect(() => {
     localStorage.setItem(CODE_KEY, codeOpen ? '1' : '0')
   }, [codeOpen])
-
-  useEffect(() => {
-    if (!focusComposer || !panelOpen) return
-    composerRef.current?.focus()
-    setFocusComposer(false)
-  }, [focusComposer, panelOpen])
 
   // ---- React Flow derived state --------------------------------------------
 
@@ -951,7 +946,7 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
                   ‹
                 </button>
               </div>
-              <CodePane value={state.text} onChange={onCodeChange} parseError={state.parseError} />
+              <CodePane value={state.text} onChange={onCodeChange} parseError={state.parseError} target={selTarget} />
             </>
           ) : (
             <button
@@ -1019,6 +1014,15 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
                 <Controls />
                 <MiniMap pannable zoomable />
               </ReactFlow>
+              <InlineNote
+                target={selTarget}
+                open={noteOpen}
+                onOpen={() => setNoteOpen(true)}
+                onClose={() => setNoteOpen(false)}
+                annotations={annotations}
+                onAdd={addComment}
+                onRemove={(id) => setAnnotations((a) => a.filter((x) => x.id !== id))}
+              />
               <Toolbar
                 autoLayout={autoLayout}
                 onAutoLayoutChange={toggleAutoLayout}
@@ -1066,18 +1070,15 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
           file={initial?.file ?? null}
           status={status}
           lastSent={lastSent}
-          selected={selTarget}
           annotations={annotations}
           exists={(t) => targetExists(t, state.doc)}
           message={message}
           onMessage={setMessage}
-          onAdd={addComment}
           onRemove={(id) => setAnnotations((a) => a.filter((x) => x.id !== id))}
           onLocate={locate}
           onSend={(d) => void send(d)}
           sending={sending}
           error={sendError}
-          composerRef={composerRef}
         />
       </div>
     </div>

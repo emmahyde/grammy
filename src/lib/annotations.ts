@@ -51,6 +51,11 @@ export function pinsByNode(annotations: readonly Annotation[]): Map<string, numb
   return pins
 }
 
+/** Same canvas item? Edges match by their two ends, as in targetExists. */
+export function sameTarget(a: Target, b: Target): boolean {
+  return a.kind === 'node' ? b.kind === 'node' && a.id === b.id : b.kind === 'edge' && a.source === b.source && a.target === b.target
+}
+
 export function toFeedback(annotations: readonly Annotation[]): FeedbackAnnotation[] {
   return annotations.map(({ target, tag, note }) => ({ target, tag, note }))
 }
