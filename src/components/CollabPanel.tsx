@@ -8,6 +8,9 @@ interface Props {
   /** The live event stream is currently connected. */
   connected: boolean
   file: string | null
+  /** Expanded panel versus the slim rail. */
+  open: boolean
+  onToggle: () => void
   status: SurfaceStatus | null
   lastSent: { seq: number; decision: Decision } | null
   selected: Target | null
@@ -42,6 +45,31 @@ export function CollabPanel(p: Props) {
   const listening = p.linked && p.status?.listening === true
   const canSend = p.linked && !p.sending && (p.message.trim() !== '' || p.annotations.length > 0)
   const sent = delivery(p)
+  const presenceText = !p.linked ? 'Not linked' : !p.connected ? 'Reconnecting…' : listening ? 'Agent listening' : 'Agent not listening'
+
+  if (!p.open) {
+    // the rail keeps the two facts worth a glance (is the agent there, how many comments are staged) and nothing else
+    return (
+      <aside className="collab collapsed" aria-label="Collaboration">
+        <button
+          className="rail-btn"
+          onClick={p.onToggle}
+          aria-expanded={false}
+          aria-label={`Open collaboration panel. ${presenceText}. ${p.annotations.length} comments.`}
+          title={`${presenceText}. Click to open`}
+        >
+          <span aria-hidden>‹</span>
+          <span className={`presence ${listening ? 'on' : ''}`}>
+            <i />
+          </span>
+          {p.annotations.length > 0 && <span className="rail-count">{p.annotations.length}</span>}
+          <span className="rail-label" aria-hidden>
+            Agent
+          </span>
+        </button>
+      </aside>
+    )
+  }
 
   function add() {
     const text = note.trim()
@@ -56,8 +84,11 @@ export function CollabPanel(p: Props) {
       <div className="collab-head">
         <span className="collab-title">Design with the agent</span>
         <span className={`presence ${listening ? 'on' : ''}`} title={p.file ?? undefined}>
-          <i /> {!p.linked ? 'Not linked' : !p.connected ? 'Reconnecting…' : listening ? 'Agent listening' : 'Agent not listening'}
+          <i /> {presenceText}
         </span>
+        <button className="icon-btn" onClick={p.onToggle} aria-expanded aria-label="Collapse collaboration panel" title="Collapse">
+          ›
+        </button>
       </div>
 
       {!p.linked && (

@@ -46,6 +46,7 @@ import './App.css'
 const STORAGE_KEY = 'grammy:doc'
 const NOTES_KEY = 'grammy:annotations'
 const MESSAGE_KEY = 'grammy:message'
+const PANEL_KEY = 'grammy:collab-open'
 
 const DEFAULT_TEXT = `flowchart TD
   A[Start] --> B{Ship it?}
@@ -238,7 +239,8 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   const [conflict, setConflict] = useState<DocSnapshot | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [agentChange, setAgentChange] = useState<{ diff: DocDiff | null; error: string | null } | null>(null)
-  const [panelOpen, setPanelOpen] = useState(true)
+  const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem(PANEL_KEY) === '1')
+  const [focusComposer, setFocusComposer] = useState(false)
   const [annotations, setAnnotations] = useState<Annotation[]>(loadAnnotations)
   const [message, setMessage] = useState(() => localStorage.getItem(MESSAGE_KEY) ?? '')
   const [sending, setSending] = useState(false)
@@ -422,15 +424,30 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   // C: jump to the comment box for the selected item
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey || !panelOpen || selTarget == null) return
+      if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey || selTarget == null) return
       const from = e.target instanceof Element ? e.target : null
       if (from?.closest('input, textarea, select, [contenteditable="true"], .cm-editor') != null) return
       e.preventDefault()
-      composerRef.current?.focus()
+      // the composer is not mounted while the panel is a rail: open it, focus once it exists
+      if (panelOpen) composerRef.current?.focus()
+      else {
+        setPanelOpen(true)
+        setFocusComposer(true)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [panelOpen, selTarget])
+
+  useEffect(() => {
+    localStorage.setItem(PANEL_KEY, panelOpen ? '1' : '0')
+  }, [panelOpen])
+
+  useEffect(() => {
+    if (!focusComposer || !panelOpen) return
+    composerRef.current?.focus()
+    setFocusComposer(false)
+  }, [focusComposer, panelOpen])
 
   // ---- React Flow derived state --------------------------------------------
 
@@ -1011,27 +1028,27 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
             </div>
           )}
         </div>
-        {panelOpen && (
-          <CollabPanel
-            linked={linked}
-            connected={connected}
-            file={initial?.file ?? null}
-            status={status}
-            lastSent={lastSent}
-            selected={selTarget}
-            annotations={annotations}
-            exists={(t) => targetExists(t, state.doc)}
-            message={message}
-            onMessage={setMessage}
-            onAdd={addComment}
-            onRemove={(id) => setAnnotations((a) => a.filter((x) => x.id !== id))}
-            onLocate={locate}
-            onSend={(d) => void send(d)}
-            sending={sending}
-            error={sendError}
-            composerRef={composerRef}
-          />
-        )}
+        <CollabPanel
+          open={panelOpen}
+          onToggle={() => setPanelOpen((v) => !v)}
+          linked={linked}
+          connected={connected}
+          file={initial?.file ?? null}
+          status={status}
+          lastSent={lastSent}
+          selected={selTarget}
+          annotations={annotations}
+          exists={(t) => targetExists(t, state.doc)}
+          message={message}
+          onMessage={setMessage}
+          onAdd={addComment}
+          onRemove={(id) => setAnnotations((a) => a.filter((x) => x.id !== id))}
+          onLocate={locate}
+          onSend={(d) => void send(d)}
+          sending={sending}
+          error={sendError}
+          composerRef={composerRef}
+        />
       </div>
     </div>
   )
