@@ -1,4 +1,4 @@
-import type { FlowDoc, FlowEdge, LayoutMeta, ShapeNode } from './model'
+import type { EdgeCurve, FlowDoc, FlowEdge, LayoutMeta, ShapeNode } from './model'
 import { LAYOUT_COMMENT_PREFIX, SHAPE_BRACKETS } from './model'
 
 function nodeDecl(n: ShapeNode): string {
@@ -103,4 +103,42 @@ export function metaFromNodes(nodes: ShapeNode[], autoLayout: boolean): LayoutMe
     out.nodes[n.id] = { x: Math.round(n.position.x), y: Math.round(n.position.y) }
   }
   return out
+}
+
+/**
+ * Layout metadata for a doc: positions, non-default sizes, and per-edge curve overrides.
+ * `previous` is the layout line the text came with. A parse resets every node to the default
+ * size, so sizes saved there are carried over instead of being dropped by the rewrite.
+ */
+export function layoutMetaFor(
+  doc: FlowDoc,
+  autoLayout: boolean,
+  curves: Record<number, EdgeCurve>,
+  previous: LayoutMeta | null = null,
+): LayoutMeta {
+  const meta: LayoutMeta = { ...metaFromNodes(doc.nodes, autoLayout), curves }
+  for (const n of doc.nodes) {
+    const saved = previous?.nodes[n.id]
+    const w = n.width != null && n.width !== 160 ? Math.round(n.width) : saved?.w
+    const h = n.height != null && n.height !== 52 ? Math.round(n.height) : saved?.h
+    if (w != null) meta.nodes[n.id].w = w
+    if (h != null) meta.nodes[n.id].h = h
+  }
+  return meta
+}
+
+/** True when some node has no saved position: a new diagram, or text edited while the layout was not looking. */
+export function lacksPositions(doc: FlowDoc, meta: LayoutMeta | null): boolean {
+  return doc.nodes.length > 0 && (meta == null || doc.nodes.some((n) => meta.nodes[n.id] == null))
+}
+
+/** Replace (or add) the trailing layout line without re-serializing the rest of the text. */
+export function withLayoutMeta(text: string, meta: LayoutMeta): string {
+  const prefix = LAYOUT_COMMENT_PREFIX.trim()
+  const body = text
+    .split('\n')
+    .filter((l) => !l.trim().startsWith(prefix))
+    .join('\n')
+    .replace(/\s+$/, '')
+  return `${body}\n${LAYOUT_COMMENT_PREFIX}${JSON.stringify(meta)}`
 }

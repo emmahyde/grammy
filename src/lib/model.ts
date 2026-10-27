@@ -28,6 +28,8 @@ export interface ShapeNodeData extends Record<string, unknown> {
   styleProps: Record<string, string>
   /** classDef name assigned via `class A name` (kept for round-trip) */
   className?: string
+  /** 1-based numbers of the comments pinned to this node. Set on the canvas copy only; never serialized. */
+  pins?: number[]
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {

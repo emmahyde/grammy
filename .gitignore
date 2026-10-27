@@ -25,3 +25,6 @@ dist-ssr
 
 # tool state
 .serena/
+
+# collaboration surface state (inbox of unread feedback, agent presence)
+.grammy/

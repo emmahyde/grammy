@@ -50,6 +50,11 @@ function ShapeNodeInner({ data, width, height, selected }: NodeProps<ShapeNodeTy
       <div className="shape-label" style={{ color, padding: isRound ? '0 18%' : '0 10%' }}>
         {data.label}
       </div>
+      {data.pins != null && data.pins.length > 0 && (
+        <div className="node-pin" title={`Comment ${data.pins.join(', ')}`}>
+          {data.pins.join(',')}
+        </div>
+      )}
       {/* all four are type=source: ConnectionMode.Loose lets any end an edge,
           and React Flow only resolves an edge's source end from source-type handles */}
       <Handle type="source" position={Position.Top} id="t" />
