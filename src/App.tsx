@@ -47,6 +47,7 @@ const STORAGE_KEY = 'grammy:doc'
 const NOTES_KEY = 'grammy:annotations'
 const MESSAGE_KEY = 'grammy:message'
 const PANEL_KEY = 'grammy:collab-open'
+const CODE_KEY = 'grammy:code-open'
 
 const DEFAULT_TEXT = `flowchart TD
   A[Start] --> B{Ship it?}
@@ -240,6 +241,7 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [agentChange, setAgentChange] = useState<{ diff: DocDiff | null; error: string | null } | null>(null)
   const [panelOpen, setPanelOpen] = useState(() => localStorage.getItem(PANEL_KEY) === '1')
+  const [codeOpen, setCodeOpen] = useState(() => localStorage.getItem(CODE_KEY) === '1')
   const [focusComposer, setFocusComposer] = useState(false)
   const [annotations, setAnnotations] = useState<Annotation[]>(loadAnnotations)
   const [message, setMessage] = useState(() => localStorage.getItem(MESSAGE_KEY) ?? '')
@@ -442,6 +444,10 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
   useEffect(() => {
     localStorage.setItem(PANEL_KEY, panelOpen ? '1' : '0')
   }, [panelOpen])
+
+  useEffect(() => {
+    localStorage.setItem(CODE_KEY, codeOpen ? '1' : '0')
+  }, [codeOpen])
 
   useEffect(() => {
     if (!focusComposer || !panelOpen) return
@@ -936,8 +942,32 @@ function Editor({ initial }: { initial: DocSnapshot | null }) {
         </div>
       )}
       <div className="main">
-        <div className="left">
-          <CodePane value={state.text} onChange={onCodeChange} parseError={state.parseError} />
+        <div className={`left${codeOpen ? '' : ' collapsed'}`}>
+          {codeOpen ? (
+            <>
+              <div className="pane-head">
+                <span className="pane-title">Mermaid</span>
+                <button className="icon-btn" onClick={() => setCodeOpen(false)} aria-expanded aria-label="Collapse code pane" title="Collapse">
+                  ‹
+                </button>
+              </div>
+              <CodePane value={state.text} onChange={onCodeChange} parseError={state.parseError} />
+            </>
+          ) : (
+            <button
+              className="rail-btn"
+              onClick={() => setCodeOpen(true)}
+              aria-expanded={false}
+              aria-label={state.parseError ? 'Open code pane. The diagram has a syntax error.' : 'Open code pane'}
+              title="Open code pane"
+            >
+              <span aria-hidden>›</span>
+              {state.parseError && <span className="rail-warn" aria-hidden />}
+              <span className="rail-label" aria-hidden>
+                Code
+              </span>
+            </button>
+          )}
         </div>
         <div className="right">
           {view === 'preview' ? (
